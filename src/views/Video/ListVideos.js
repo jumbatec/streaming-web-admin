@@ -43,7 +43,7 @@ class ListBooks extends Component {
     
       inativate = async v => {
        
-        await api.put("/movies/"+v.id+"/"+v.createdAt,{active:0});    
+        await api.delete("/movies/"+v.id+"/"+v.createdAt);    
        let videos= this.state.videos.filter(ev=>ev.id!==v.id);
        this.setState({videos,open:false})
        
