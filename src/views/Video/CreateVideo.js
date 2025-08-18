@@ -303,7 +303,7 @@ class CreateVideo extends Component {
       };
 
       let resp = await api.post(
-        "/file-upload/upload",
+        "/file-upload/upload-image",
         data, config
       );
 
