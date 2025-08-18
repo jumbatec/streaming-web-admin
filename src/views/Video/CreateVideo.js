@@ -184,7 +184,7 @@ class CreateVideo extends Component {
         duration,
         traillerUrl,
         publishDate,
-        time: timeInMinutes,
+        time: time,
         sucursalId: defaultSucursal
       });
 

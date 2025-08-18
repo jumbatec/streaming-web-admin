@@ -28,25 +28,25 @@ class ListBooks extends Component {
       }
       componentDidMount() {
         // api.get('/api/video/count/alll/videos')
-        // .then(res => {         
-        //   this.setState({total:20});           
+        // .then(res => {
+        //   this.setState({total:20});
         // })
- 
+
         this.loadvideos(this.state.curentpage)
       }
 
-      
+
       toggleFade=(v) =>{
-        this.setState( {open: !this.state.open,video:v})       
-             
+        this.setState( {open: !this.state.open,video:v})
+
       }
-    
+
       inativate = async v => {
-       
-        await api.put("/movies/"+v.id+"/"+v.createdAt,{active:0});    
+
+        await api.delete("/movies/"+v.id+"/"+v.createdAt,{active:0});
        let videos= this.state.videos.filter(ev=>ev.id!==v.id);
        this.setState({videos,open:false})
-       
+
       }
 
       toggleOpenClose=()=> {
@@ -56,28 +56,28 @@ class ListBooks extends Component {
       }
 
       previousPageNumber=()=>{
-        this.setState({curentpage:this.state.curentpage-1}); 
-        this.loadvideos(this.state.curentpage-1)            
+        this.setState({curentpage:this.state.curentpage-1});
+        this.loadvideos(this.state.curentpage-1)
         }
-  
+
       nextPageNumber=()=>{
-          this.setState({curentpage:this.state.curentpage+1}); 
-          this.loadvideos(this.state.curentpage+1)            
+          this.setState({curentpage:this.state.curentpage+1});
+          this.loadvideos(this.state.curentpage+1)
         }
-  
+
         loadvideos(page){
-          this.setState({processing:true }); 
+          this.setState({processing:true });
           api.get('/movies/'+defaultSucursal)
           .then(res => {
-            const videos = res.data;     
-            this.setState({videos:videos,processing:false });             
-          })                  
+            const videos = res.data;
+            this.setState({videos:videos,processing:false });
+          })
         }
-        
+
         upateCurentPage=(page)=>{
-          this.setState({curentpage:page}); 
+          this.setState({curentpage:page});
           this.loadvideos(page)
-            
+
         }
 
 
@@ -98,7 +98,7 @@ class ListBooks extends Component {
                     <th scope="col"></th>
                       <th scope="col">Título</th>
                       <th scope="col">Categoria</th>
-                      <th scope="col">Data de Publicação</th>                                   
+                      <th scope="col">Data de Publicação</th>
                       <th scope="col">Visualições</th>
                       <th scope="col">Comentários</th>
                       <th scope="col"></th>
@@ -106,24 +106,24 @@ class ListBooks extends Component {
                   </thead>
                   <tbody>
                     {this.state.videos.map((video, index) =>
-                 <tr key={index}>  
-                 <th scope="row">        
-              <img src={`${video.imageUrl}`} style={{height:'60px',width:'120px', "background-size": 'cover'}}  /></th>    
-              <td><Link to={`/videos/${video._id?video._id.toString():''}`}>{video.title}</Link></td>      
-              <td>{video.category?categories.filter(cat=>cat.code===video.category)[0].desc:''}</td>
-              <td>{video.createdAt}</td> 
+                 <tr key={index}>
+                 <th scope="row">
+              <img src={`${video.imageUrl}`} style={{height:'60px',width:'120px', "background-size": 'cover'}}  /></th>
+              <td><Link to={`/videos/${video._id?video._id.toString():''}`}>{video.title}</Link></td>
+              <td>{video.category}</td>
+              <td>{video.createdAt}</td>
               <td>{video.views}</td>
               <td>{video.comments?.length}</td>
-              <td> 
+              <td>
               <CButton as="input" type="button" color="danger" value="Remover" onClick={this.toggleFade.bind(this,video)} />
                 </td>
-            
+
             </tr>
                     )}
                   </tbody>
                 </Table></Loader>
-                <Pagination curent={this.state.curentpage} 
-pages={Math.ceil(this.state.total/elementsPerPage)} 
+                <Pagination curent={this.state.curentpage}
+pages={Math.ceil(this.state.total/elementsPerPage)}
 upateCurentPage={this.upateCurentPage}
  nextPageNumber={this.nextPageNumber}
   previousPageNumber={this.previousPageNumber}/>
