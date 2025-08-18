@@ -34,6 +34,7 @@ const initState = {
   imagePreview: '',
   videoPreview: '',
   url: '',
+  time: '',
   confirm: false,
   sucess: false,
   uploaded: false,
@@ -51,6 +52,7 @@ const initState = {
   detailserror: false,
   publishDateerror: false,
   traillerUrlerror: false,
+  timeerror: false,
   urlerror: false,
   files: [],
   activeTab: '1'
@@ -139,10 +141,10 @@ class CreateVideo extends Component {
 
   }
 
-  createVideo = async e => {
+  async createVideo(e) {
     e.preventDefault();
 
-   
+
     let user = JSON.parse(localStorage.getItem(USER_KEY));
     let createdBy = user ? user.id : 1;
 
@@ -150,7 +152,12 @@ class CreateVideo extends Component {
       this.setState({ traillerUrlerror: true });
       return;
     }
-    
+
+    if (this.state.time && !this.validateTimeFormat(this.state.time)) {
+      this.setState({ timeerror: true });
+      return;
+    }
+
     if (this.state.title
       && this.state.category
       && this.state.screenshot
@@ -159,17 +166,32 @@ class CreateVideo extends Component {
       && this.state.details
       && this.state.url
       && this.state.traillerUrl
+      && this.state.time
     ) {
 
       this.setState({ issaving: true })
-      const { title, category, details, url, screenshot, recomended, duration, traillerUrl, publishDate } = this.state
+      const { title, category, details, url, screenshot, recomended, duration, traillerUrl, publishDate, time } = this.state
+      const timeInMinutes = this.parseTimeToMinutes(time);
       console.log('this.state', this.state)
-      await api.post("/movies", { title, category, url, details, createdBy, imageUrl: screenshot, recomended, duration, traillerUrl, publishDate,sucursalId:defaultSucursal });
+      await api.post("/movies", {
+        title,
+        category,
+        url,
+        details,
+        createdBy,
+        imageUrl: screenshot,
+        recomended,
+        duration,
+        traillerUrl,
+        publishDate,
+        time: timeInMinutes,
+        sucursalId: defaultSucursal
+      });
 
       this.setState({ visible: false, issaving: false });
       this.toggle('3');
 
-      //TODO: Push Notifications 
+      //TODO: Push Notifications
       // setTimeout(() => {
       //   this.setState({ visible: false, issaving: false })
       // }, 4000);
@@ -184,6 +206,7 @@ class CreateVideo extends Component {
         publishDateerror: !this.state.publishDate,
         detailserror: !this.state.details,
         traillerUrlerror: !this.state.traillerUrl,
+        timeerror: !this.state.time,
         urlerror: !this.state.url
       });
     }
@@ -200,7 +223,27 @@ class CreateVideo extends Component {
     return true;
   }
 
-  uploadVideo = async (files) => {
+  validateTimeFormat(time) {
+    // Regex to match formats like "1h30min", "2h", "45min", "1h30m", etc.
+    const timeRegex = /^(?:(\d+)h)?(?:(\d+)(?:min|m))?$/i;
+    return timeRegex.test(time.trim());
+  }
+
+  parseTimeToMinutes(time) {
+    if (!time) return 0;
+
+    const timeRegex = /^(?:(\d+)h)?(?:(\d+)(?:min|m))?$/i;
+    const match = time.trim().match(timeRegex);
+
+    if (!match) return 0;
+
+    const hours = parseInt(match[1] || 0);
+    const minutes = parseInt(match[2] || 0);
+
+    return hours * 60 + minutes;
+  }
+
+  async uploadVideo(files) {
     let increment = 0;
     this.setState({ uploading: true })
     const updateProgress = (timetotal) => {
@@ -218,7 +261,7 @@ class CreateVideo extends Component {
 
     };
 
-    //Preparando para mandar o video 
+    //Preparando para mandar o video
     if (files.length !== 0) {
       //let loggedUser = JSON.parse(localStorage.getItem(USER_KEY));
       const data = new FormData();
@@ -245,7 +288,7 @@ class CreateVideo extends Component {
 
   }
 
-  handleDrop = async (files) => {
+  async handleDrop(files) {
     //Preparando para mandar as imagens
     if (files.length !== 0) {
       const data = new FormData();
@@ -382,6 +425,21 @@ class CreateVideo extends Component {
                         </FormGroup>
 
                         <FormGroup className="pr-1">
+                          <Label htmlFor="exampleInputEmail2" className="pr-1">Duração do Vídeo</Label>
+                          <Input
+                            type="text"
+                            onChange={this.handleChange}
+                            name="time"
+                            value={this.state.time}
+                            placeholder="Ex: 1h30min, 2h, 45min"
+                          />
+                          <small className="form-text text-muted">
+                            Formato aceito: 1h30min, 2h, 45min, 1h30m
+                          </small>
+                          <span>{this.state.timeerror ? <div className="required">Por favor informe a duração do vídeo no formato correto</div> : null}</span>
+                        </FormGroup>
+
+                        <FormGroup className="pr-1">
                           <Label htmlFor="exampleInputEmail2" className="pr-1">Descrição</Label>
                           <Input type="textarea" rows="3" onChange={this.handleChange} name="details" value={this.state.details} placeholder="indroduza o endereço do local" />
                           <span>{this.state.detailserror ? <div className="required">Por favor informe a descrição</div> : null}</span>
@@ -436,6 +494,13 @@ class CreateVideo extends Component {
                         <strong>Categoria do Video: </strong>
                         <Label htmlFor="nf-email">{this.state.category ? categories.filter(cat => cat.code === this.state.category)[0].desc : ''}</Label>
                       </div></div>
+
+                    <div>
+                      <div className='details'>
+                        <strong>Duração: </strong>
+                        <Label htmlFor="nf-email">{this.state.time}</Label>
+                      </div>
+                    </div>
 
                     <div>
                       <div className='details'>

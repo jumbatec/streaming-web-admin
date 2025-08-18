@@ -119,9 +119,9 @@ class ListSubscriptions extends Component {
           this.setState({ lastdata: res.data,subscriptions:paginatedSubscriptions, processing: false,total:res.data.length });
 
         });
-  
+
     }
-    
+
   }
 
   updateCurentPage = (page) => {
@@ -136,7 +136,7 @@ class ListSubscriptions extends Component {
    paginateSubscriptions(data, currentPage, numberOfElements) {
     // Ensure the currentPage is at least 1
     if (currentPage < 1) currentPage = 1;
-  
+
     // Calculate the starting index and the ending index for the slice
     const startIndex = (currentPage - 1) * numberOfElements;
     const endIndex = startIndex + numberOfElements;
@@ -154,7 +154,8 @@ class ListSubscriptions extends Component {
               <CardHeader>
                 <i className="fa fa-align-justify"></i> Subscrições
                 <h5 style={{ float: 'right' }}>
-                  [{(this.state.curentpage - 1) * elementsPerPage + 1} - {this.state.curentpage * elementsPerPage <= this.state.total ? this.state.curentpage * elementsPerPage : this.state.total} de {this.state.total}]
+                  [{(this.state.curentpage - 1) * elementsPerPage + 1} -{' '}
+                  {this.state.curentpage * elementsPerPage <= this.state.total ? this.state.curentpage * elementsPerPage : this.state.total} de {this.state.total}]
                 </h5>
               </CardHeader>
               <CardBody>
@@ -165,10 +166,10 @@ class ListSubscriptions extends Component {
                     <CTableHeaderCell className="bg-body-tertiary text-center">
                       <CIcon icon={cilPeople} />
                     </CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary">Utilizador</CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary text-center">
+                    {/* <CTableHeaderCell className="bg-body-tertiary">Utilizador</CTableHeaderCell> */}
+                    {/* <CTableHeaderCell className="bg-body-tertiary text-center">
                       Pais
-                    </CTableHeaderCell>
+                    </CTableHeaderCell> */}
                     <CTableHeaderCell className="bg-body-tertiary text-center">
                       Pagamento
                     </CTableHeaderCell>
@@ -176,15 +177,15 @@ class ListSubscriptions extends Component {
                     <CTableHeaderCell className="bg-body-tertiary">Plano</CTableHeaderCell>
                     <CTableHeaderCell className="bg-body-tertiary">Valor</CTableHeaderCell>
                     <CTableHeaderCell className="bg-body-tertiary">Estado</CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary">Proxima Renovação</CTableHeaderCell>
+                    {/* <CTableHeaderCell className="bg-body-tertiary">Proxima Renovação</CTableHeaderCell> */}
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {this.state.subscriptions?this.state.subscriptions.map((item, index) => (
                     <CTableRow v-for="item in tableItems" key={index}>
-                      <CTableDataCell className="text-center">
+                      {/* <CTableDataCell className="text-center">
                         <CAvatar size="md" src='src/assets/images/avatars/6.jpg' status={item.imageUrl} />
-                      </CTableDataCell>
+                      </CTableDataCell> */}
                       <CTableDataCell>
                         <div>{item.name}</div>
                         <div className="small text-body-secondary text-nowrap">
@@ -192,9 +193,9 @@ class ListSubscriptions extends Component {
                           {item.startDate}
                         </div>
                       </CTableDataCell>
-                      <CTableDataCell className="text-center">
+                      {/* <CTableDataCell className="text-center">
                         <CIcon size="xl" icon={cifMz} title='Moçambique' />
-                      </CTableDataCell>
+                      </CTableDataCell> */}
                       <CTableDataCell className="text-center">
                       <div className="fw-semibold text-nowrap">{item.paymentMethod}</div>
                       </CTableDataCell>
@@ -204,7 +205,7 @@ class ListSubscriptions extends Component {
                       </CTableDataCell>
 
                       <CTableDataCell className="text-center">
-                      <div className="fw-semibold text-nowrap">{item.plan}</div>
+                      <div className="fw-semibold text-nowrap">{item.plan == 'per-movie' ? 'Por Filme' : 'Ilimitado'}</div>
                       </CTableDataCell>
 
                       <CTableDataCell className="text-center">
@@ -212,26 +213,26 @@ class ListSubscriptions extends Component {
                       </CTableDataCell>
 
                       <CTableDataCell className="text-center">
-                      <div className="fw-semibold text-nowrap">{item.status}</div>
+                      <div className="fw-semibold text-nowrap">{item.status == 'EXPIRED' ? 'Expirado' : 'Activo'}</div>
                       </CTableDataCell>
 
-                      <CTableDataCell>
+                      {/* <CTableDataCell>
                         <div className="small text-body-secondary text-nowrap">Proxima cobrança em:</div>
                         <div className="fw-semibold text-nowrap">{item.endDate}</div>
-                      </CTableDataCell>
+                      </CTableDataCell> */}
                     </CTableRow>
                   )):null}
                 </CTableBody>
               </CTable>
-                 
-                 
-                 
-                 
-                 
-                 
-                 
-                 
-               
+
+
+
+
+
+
+
+
+
                 </Loader>
                 <Pagination
                   curent={this.state.curentpage}

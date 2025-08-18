@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
 
 import {
@@ -14,12 +14,51 @@ import { getStyle } from '@coreui/utils'
 import { CChartBar, CChartLine } from '@coreui/react-chartjs'
 import CIcon from '@coreui/icons-react'
 import { cilArrowBottom, cilArrowTop, cilOptions } from '@coreui/icons'
+import api, { defaultSucursal } from '../../services/api'
 
 const WidgetsDropdown = (props) => {
   const widgetChartRef1 = useRef(null)
   const widgetChartRef2 = useRef(null)
+  const [subscriptionStats, setSubscriptionStats] = useState({
+    totalUsers: 0,
+    totalRevenue: 0,
+    activeSubscriptions: 0,
+    conversionRate: 0,
+  })
 
   useEffect(() => {
+    // Fetch subscription data
+    const fetchSubscriptionStats = async () => {
+      try {
+        const response = await api.get(`/subscriptions/${defaultSucursal}`)
+        const subscriptions = response.data || []
+
+        // Calculate stats
+        const activeSubscriptions = subscriptions.filter(
+          (sub) => sub.status === 'active' || sub.status === 'Ativo' || sub.status === 'Activa',
+        ).length
+        const totalRevenue = subscriptions.reduce(
+          (sum, sub) => sum + (parseFloat(sub.price) || 0),
+          0,
+        )
+        // Use unique users passed from Dashboard component
+        const totalUsers = props.uniqueUsers?.length || 0
+        // Set conversion rate to 100% as requested
+        const conversionRate = 100
+
+        setSubscriptionStats({
+          totalUsers,
+          totalRevenue,
+          activeSubscriptions,
+          conversionRate,
+        })
+      } catch (error) {
+        console.error('Error fetching subscription stats:', error)
+      }
+    }
+
+    fetchSubscriptionStats()
+
     document.documentElement.addEventListener('ColorSchemeChange', () => {
       if (widgetChartRef1.current) {
         setTimeout(() => {
@@ -35,7 +74,7 @@ const WidgetsDropdown = (props) => {
         })
       }
     })
-  }, [widgetChartRef1, widgetChartRef2])
+  }, [props.uniqueUsers])
 
   return (
     <CRow className={props.className} xs={{ gutter: 4 }}>
@@ -44,23 +83,20 @@ const WidgetsDropdown = (props) => {
           color="primary"
           value={
             <>
-              26K{' '}
-              <span className="fs-6 fw-normal">
-                (-12.4% <CIcon icon={cilArrowBottom} />)
-              </span>
+              {subscriptionStats.totalUsers} <span className="fs-6 fw-normal">Utilizadores</span>
             </>
           }
-          title="Users"
+          title="Total de Utilizadores"
           action={
             <CDropdown alignment="end">
               <CDropdownToggle color="transparent" caret={false} className="text-white p-0">
                 <CIcon icon={cilOptions} />
               </CDropdownToggle>
               <CDropdownMenu>
-                <CDropdownItem>Action</CDropdownItem>
-                <CDropdownItem>Another action</CDropdownItem>
-                <CDropdownItem>Something else here...</CDropdownItem>
-                <CDropdownItem disabled>Disabled action</CDropdownItem>
+                <CDropdownItem>Ação</CDropdownItem>
+                <CDropdownItem>Outra ação</CDropdownItem>
+                <CDropdownItem>Algo mais aqui...</CDropdownItem>
+                <CDropdownItem disabled>Ação desabilitada</CDropdownItem>
               </CDropdownMenu>
             </CDropdown>
           }
@@ -70,10 +106,10 @@ const WidgetsDropdown = (props) => {
               className="mt-3 mx-3"
               style={{ height: '70px' }}
               data={{
-                labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+                labels: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho'],
                 datasets: [
                   {
-                    label: 'My First dataset',
+                    label: 'Primeiro conjunto de dados',
                     backgroundColor: 'transparent',
                     borderColor: 'rgba(255,255,255,.55)',
                     pointBackgroundColor: getStyle('--cui-primary'),
@@ -134,23 +170,21 @@ const WidgetsDropdown = (props) => {
           color="info"
           value={
             <>
-              $6.200{' '}
-              <span className="fs-6 fw-normal">
-                (40.9% <CIcon icon={cilArrowTop} />)
-              </span>
+              {subscriptionStats.totalRevenue.toFixed(2)} MZN{' '}
+              <span className="fs-6 fw-normal">Receita</span>
             </>
           }
-          title="Income"
+          title="Receita Ativa"
           action={
             <CDropdown alignment="end">
               <CDropdownToggle color="transparent" caret={false} className="text-white p-0">
                 <CIcon icon={cilOptions} />
               </CDropdownToggle>
               <CDropdownMenu>
-                <CDropdownItem>Action</CDropdownItem>
-                <CDropdownItem>Another action</CDropdownItem>
-                <CDropdownItem>Something else here...</CDropdownItem>
-                <CDropdownItem disabled>Disabled action</CDropdownItem>
+                <CDropdownItem>Ação</CDropdownItem>
+                <CDropdownItem>Outra ação</CDropdownItem>
+                <CDropdownItem>Algo mais aqui...</CDropdownItem>
+                <CDropdownItem disabled>Ação desabilitada</CDropdownItem>
               </CDropdownMenu>
             </CDropdown>
           }
@@ -160,10 +194,10 @@ const WidgetsDropdown = (props) => {
               className="mt-3 mx-3"
               style={{ height: '70px' }}
               data={{
-                labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+                labels: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho'],
                 datasets: [
                   {
-                    label: 'My First dataset',
+                    label: 'Primeiro conjunto de dados',
                     backgroundColor: 'transparent',
                     borderColor: 'rgba(255,255,255,.55)',
                     pointBackgroundColor: getStyle('--cui-info'),
@@ -223,23 +257,20 @@ const WidgetsDropdown = (props) => {
           color="warning"
           value={
             <>
-              2.49%{' '}
-              <span className="fs-6 fw-normal">
-                (84.7% <CIcon icon={cilArrowTop} />)
-              </span>
+              {subscriptionStats.activeSubscriptions} <span className="fs-6 fw-normal">Ativas</span>
             </>
           }
-          title="Conversion Rate"
+          title="Subscrições Ativas"
           action={
             <CDropdown alignment="end">
               <CDropdownToggle color="transparent" caret={false} className="text-white p-0">
                 <CIcon icon={cilOptions} />
               </CDropdownToggle>
               <CDropdownMenu>
-                <CDropdownItem>Action</CDropdownItem>
-                <CDropdownItem>Another action</CDropdownItem>
-                <CDropdownItem>Something else here...</CDropdownItem>
-                <CDropdownItem disabled>Disabled action</CDropdownItem>
+                <CDropdownItem>Ação</CDropdownItem>
+                <CDropdownItem>Outra ação</CDropdownItem>
+                <CDropdownItem>Algo mais aqui...</CDropdownItem>
+                <CDropdownItem disabled>Ação desabilitada</CDropdownItem>
               </CDropdownMenu>
             </CDropdown>
           }
@@ -248,10 +279,10 @@ const WidgetsDropdown = (props) => {
               className="mt-3"
               style={{ height: '70px' }}
               data={{
-                labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+                labels: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho'],
                 datasets: [
                   {
-                    label: 'My First dataset',
+                    label: 'Primeiro conjunto de dados',
                     backgroundColor: 'rgba(255,255,255,.2)',
                     borderColor: 'rgba(255,255,255,.55)',
                     data: [78, 81, 80, 45, 34, 12, 40],
@@ -295,23 +326,21 @@ const WidgetsDropdown = (props) => {
           color="danger"
           value={
             <>
-              44K{' '}
-              <span className="fs-6 fw-normal">
-                (-23.6% <CIcon icon={cilArrowBottom} />)
-              </span>
+              {subscriptionStats.conversionRate.toFixed(1)}%{' '}
+              <span className="fs-6 fw-normal">Taxa</span>
             </>
           }
-          title="Sessions"
+          title="Taxa de Conversão"
           action={
             <CDropdown alignment="end">
               <CDropdownToggle color="transparent" caret={false} className="text-white p-0">
                 <CIcon icon={cilOptions} />
               </CDropdownToggle>
               <CDropdownMenu>
-                <CDropdownItem>Action</CDropdownItem>
-                <CDropdownItem>Another action</CDropdownItem>
-                <CDropdownItem>Something else here...</CDropdownItem>
-                <CDropdownItem disabled>Disabled action</CDropdownItem>
+                <CDropdownItem>Ação</CDropdownItem>
+                <CDropdownItem>Outra ação</CDropdownItem>
+                <CDropdownItem>Algo mais aqui...</CDropdownItem>
+                <CDropdownItem disabled>Ação desabilitada</CDropdownItem>
               </CDropdownMenu>
             </CDropdown>
           }
@@ -321,26 +350,26 @@ const WidgetsDropdown = (props) => {
               style={{ height: '70px' }}
               data={{
                 labels: [
-                  'January',
-                  'February',
-                  'March',
-                  'April',
-                  'May',
-                  'June',
-                  'July',
-                  'August',
-                  'September',
-                  'October',
-                  'November',
-                  'December',
-                  'January',
-                  'February',
-                  'March',
-                  'April',
+                  'Janeiro',
+                  'Fevereiro',
+                  'Março',
+                  'Abril',
+                  'Maio',
+                  'Junho',
+                  'Julho',
+                  'Agosto',
+                  'Setembro',
+                  'Outubro',
+                  'Novembro',
+                  'Dezembro',
+                  'Janeiro',
+                  'Fevereiro',
+                  'Março',
+                  'Abril',
                 ],
                 datasets: [
                   {
-                    label: 'My First dataset',
+                    label: 'Primeiro conjunto de dados',
                     backgroundColor: 'rgba(255,255,255,.2)',
                     borderColor: 'rgba(255,255,255,.55)',
                     data: [78, 81, 80, 45, 34, 12, 40, 85, 65, 23, 12, 98, 34, 84, 67, 82],
@@ -391,6 +420,7 @@ const WidgetsDropdown = (props) => {
 WidgetsDropdown.propTypes = {
   className: PropTypes.string,
   withCharts: PropTypes.bool,
+  uniqueUsers: PropTypes.array,
 }
 
 export default WidgetsDropdown
