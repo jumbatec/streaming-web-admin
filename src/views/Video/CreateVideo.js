@@ -346,7 +346,7 @@ class CreateVideo extends Component {
             <img
               alt="upload"
               className="Icon"
-              src={'src/assets/cloud.png'}
+              src={'https://d35j2vcatj5trm.cloudfront.net/cloud.png'}
 
             />
 
