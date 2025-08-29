@@ -73,6 +73,77 @@ import {
 import Pagination from '../Utils/Pagination'
 import { useAuth } from '../../contexts/AuthContext'
 
+// Custom styles for the subscription report
+const reportStyles = `
+  .subscription-report .card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .subscription-report .table {
+    font-size: 0.9rem;
+  }
+
+  .subscription-report .table th {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    font-weight: 600;
+  }
+
+  .subscription-report .badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+  }
+
+  .subscription-report .bg-light {
+    background-color: #f8f9fa !important;
+  }
+
+  .subscription-table {
+    width: 100% !important;
+    table-layout: fixed;
+  }
+
+  .subscription-table th,
+  .subscription-table td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    padding: 8px 12px;
+    vertical-align: middle;
+  }
+
+  .subscription-table th {
+    font-weight: 600;
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+  }
+
+  .subscription-table td {
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .subscription-table .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .btn-disabled-no-filters {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn-disabled-no-filters:hover {
+    opacity: 0.6;
+  }
+`
+
 const elementsPerPage = 6
 const spinner = (
   <div className="d-flex justify-content-center">
@@ -141,8 +212,11 @@ class ListSubscriptions extends Component {
         // { value: 'CANCELLED', label: 'Cancelado' },
         // { value: 'PENDING', label: 'Pendente' }
       ],
-      // Print modal state
-      showPrintModal: false,
+      // Report generation state
+      generatingReport: false,
+      // PDF modal state
+      showPdfModal: false,
+      pdfUrl: null,
     }
 
     // Bind methods
@@ -152,9 +226,9 @@ class ListSubscriptions extends Component {
     this.handleDateRangeChange = this.handleDateRangeChange.bind(this)
     this.clearFilters = this.clearFilters.bind(this)
     this.applyFilters = this.applyFilters.bind(this)
-    this.openPrintModal = this.openPrintModal.bind(this)
-    this.closePrintModal = this.closePrintModal.bind(this)
     this.generatePDF = this.generatePDF.bind(this)
+    this.openPdfModal = this.openPdfModal.bind(this)
+    this.closePdfModal = this.closePdfModal.bind(this)
   }
 
   generateYears() {
@@ -284,28 +358,68 @@ class ListSubscriptions extends Component {
   }
 
   // Print modal methods
-  openPrintModal() {
-    this.setState({ showPrintModal: true })
+  openPdfModal(pdfUrl) {
+    this.setState({
+      showPdfModal: true,
+      pdfUrl: pdfUrl
+    })
   }
 
-  closePrintModal() {
-    this.setState({ showPrintModal: false })
+  closePdfModal() {
+    this.setState({
+      showPdfModal: false,
+      pdfUrl: null
+    })
   }
 
-  generatePDF() {
-    // This function will be implemented to generate PDF report
-    // For now, just show an alert
-    alert('PDF generation will be implemented here')
-    this.closePrintModal()
+  // Check if any filters are selected
+  hasFiltersSelected() {
+    const { startDate, endDate, selectedYear, selectedMonth, selectedStatus } = this.state;
+    return startDate || endDate || (selectedYear && selectedYear !== '') || (selectedMonth && selectedMonth !== '') || (selectedStatus && selectedStatus !== '');
   }
 
-  previousPageNumber = () => {
+    async generatePDF() {
+    const { startDate, endDate, selectedYear, selectedMonth, selectedStatus } = this.state;
+
+    // Check if at least one filter is selected
+    if (!startDate && !endDate && (!selectedYear || selectedYear === '') && (!selectedMonth || selectedMonth === '') && (!selectedStatus || selectedStatus === '')) {
+      alert('Por favor, selecione pelo menos um filtro para gerar o relatório.');
+      return;
+    }
+
+    this.setState({ generatingReport: true });
+
+    try {
+      const params = {};
+
+      if (startDate) params.startDate = startDate.toISOString().split('T')[0];
+      if (endDate) params.endDate = endDate.toISOString().split('T')[0];
+      if (selectedYear) params.selectedYear = selectedYear;
+      if (selectedMonth) params.selectedMonth = selectedMonth;
+      if (selectedStatus) params.selectedStatus = selectedStatus;
+
+      const response = await api.get(`/subscriptions/report/${defaultSucursal}`, { params });
+
+      // Open PDF modal
+      if (response.data.pdf) {
+        this.openPdfModal(response.data.pdf);
+      }
+
+      this.setState({ generatingReport: false });
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('Erro ao gerar relatório. Tente novamente.');
+      this.setState({ generatingReport: false });
+    }
+  }
+
+  previousPageNumber() {
     const newPage = this.state.curentpage - 1
     this.setState({ curentpage: newPage })
     this.loadSubscriptions(newPage)
   }
 
-  nextPageNumber = () => {
+  nextPageNumber() {
     const newPage = this.state.curentpage + 1
     this.setState({ curentpage: newPage })
     this.loadSubscriptions(newPage)
@@ -342,7 +456,7 @@ class ListSubscriptions extends Component {
     }
   }
 
-  updateCurentPage = (page) => {
+  updateCurentPage(page) {
     this.setState({ curentpage: page })
     this.loadSubscriptions(page)
   }
@@ -372,11 +486,14 @@ class ListSubscriptions extends Component {
       endDate,
       years,
       statusOptions,
-      showPrintModal,
+      generatingReport,
+      showPdfModal,
+      pdfUrl,
     } = this.state
 
     return (
       <div className="animated fadeIn">
+        <style>{reportStyles}</style>
         <Row>
           <Col xl={12}>
             <Card>
@@ -463,9 +580,24 @@ class ListSubscriptions extends Component {
                       <CButton color="secondary" onClick={this.clearFilters} className="mb-2">
                         Limpar
                       </CButton>
-                      <CButton color="primary" onClick={this.openPrintModal} className="mb-2">
-                        <CIcon icon={cilPrint} className="me-1" />
-                        Imprimir
+                                            <CButton
+                        color="primary"
+                        onClick={this.generatePDF}
+                        disabled={generatingReport || !this.hasFiltersSelected()}
+                        className={`mb-2 ${!this.hasFiltersSelected() ? 'btn-disabled-no-filters' : ''}`}
+                        title={!this.hasFiltersSelected() ? 'Selecione pelo menos um filtro para gerar o relatório' : ''}
+                      >
+                        {generatingReport ? (
+                          <>
+                            <ClipLoader size={16} color="white" className="me-2" />
+                            Gerando...
+                          </>
+                        ) : (
+                          <>
+                            <CIcon icon={cilPrint} className="me-1" />
+                            Imprimir
+                          </>
+                        )}
                       </CButton>
                     </Col>
                   </Row>
@@ -476,29 +608,23 @@ class ListSubscriptions extends Component {
                     {spinner}
                   </div>
                 ) : (
-                  <CTable align="middle" className="mb-0 border" hover responsive striped>
+                  <div className="table-container">
+                    <CTable align="middle" className="mb-0 border w-100 subscription-table" hover responsive striped style={{ tableLayout: 'fixed', width: '100%' }}>
                     <CTableHead className="text-nowrap">
                       <CTableRow>
-                        {/* <CTableHeaderCell className="bg-body-tertiary text-center">
-                      <CIcon icon={cilPeople} />
-                    </CTableHeaderCell> */}
-                        <CTableHeaderCell className="bg-body-tertiary">Utilizador</CTableHeaderCell>
-                        {/* <CTableHeaderCell className="bg-body-tertiary text-center">
-                      Pais
-                    </CTableHeaderCell> */}
-                        <CTableHeaderCell className="bg-body-tertiary text-center">
+                        <CTableHeaderCell className="bg-body-tertiary" style={{ width: '20%' }}>Utilizador</CTableHeaderCell>
+                        <CTableHeaderCell className="bg-body-tertiary text-center" style={{ width: '12%' }}>
                           Contacto
                         </CTableHeaderCell>
-                        <CTableHeaderCell className="bg-body-tertiary text-center">
+                        <CTableHeaderCell className="bg-body-tertiary text-center" style={{ width: '12%' }}>
                           Pagamento
                         </CTableHeaderCell>
-                        <CTableHeaderCell className="bg-body-tertiary">
+                        <CTableHeaderCell className="bg-body-tertiary" style={{ width: '15%' }}>
                           Data de Inicio
                         </CTableHeaderCell>
-                        <CTableHeaderCell className="bg-body-tertiary">Plano</CTableHeaderCell>
-                        <CTableHeaderCell className="bg-body-tertiary">Valor</CTableHeaderCell>
-                        <CTableHeaderCell className="bg-body-tertiary">Estado</CTableHeaderCell>
-                        {/* <CTableHeaderCell className="bg-body-tertiary">Proxima Renovação</CTableHeaderCell> */}
+                        <CTableHeaderCell className="bg-body-tertiary" style={{ width: '10%' }}>Plano</CTableHeaderCell>
+                        <CTableHeaderCell className="bg-body-tertiary" style={{ width: '10%' }}>Valor</CTableHeaderCell>
+                        <CTableHeaderCell className="bg-body-tertiary" style={{ width: '12%' }}>Estado</CTableHeaderCell>
                       </CTableRow>
                     </CTableHead>
                     <CTableBody>
@@ -563,6 +689,7 @@ class ListSubscriptions extends Component {
                         : null}
                     </CTableBody>
                   </CTable>
+                    </div>
                 )}
                 <Pagination
                   curent={this.state.curentpage}
@@ -576,47 +703,30 @@ class ListSubscriptions extends Component {
           </Col>
         </Row>
 
-        {/* Print Modal */}
-        <CModal visible={showPrintModal} onClose={this.closePrintModal} size="lg">
-          <CModalHeader onClose={this.closePrintModal}>
-            <CModalTitle>Gerar Relatório PDF</CModalTitle>
+
+
+                        {/* PDF Modal */}
+        <CModal visible={showPdfModal} onClose={this.closePdfModal} size="xl" fullscreen>
+          <CModalHeader onClose={this.closePdfModal}>
+            <CModalTitle>
+              <CIcon icon={cilPrint} className="me-2" />
+              Relatório de Subscrições
+            </CModalTitle>
           </CModalHeader>
-          <CModalBody>
-            <p>Relatório de subscrições com filtros aplicados:</p>
-            <ul>
-              <li>
-                <strong>Ano:</strong> {selectedYear}
-              </li>
-              <li>
-                <strong>Mês:</strong>{' '}
-                {selectedMonth ? months.find((m) => m.code === selectedMonth)?.desc : 'Todos'}
-              </li>
-              <li>
-                <strong>Estado:</strong>{' '}
-                {selectedStatus
-                  ? statusOptions.find((s) => s.value === selectedStatus)?.label
-                  : 'Todos'}
-              </li>
-              <li>
-                <strong>Data Início:</strong>{' '}
-                {startDate ? startDate.toLocaleDateString('pt-BR') : 'Não definido'}
-              </li>
-              <li>
-                <strong>Data Fim:</strong>{' '}
-                {endDate ? endDate.toLocaleDateString('pt-BR') : 'Não definido'}
-              </li>
-              <li>
-                <strong>Total de Subscrições:</strong> {this.state.filteredData.length}
-              </li>
-            </ul>
+          <CModalBody className="p-0">
+            {pdfUrl && (
+              <iframe
+                src={pdfUrl}
+                width="100%"
+                height="100%"
+                style={{ border: 'none', minHeight: '80vh' }}
+                title="Relatório PDF"
+              />
+            )}
           </CModalBody>
           <CModalFooter>
-            <CButton color="secondary" onClick={this.closePrintModal}>
-              Cancelar
-            </CButton>
-            <CButton color="primary" onClick={this.generatePDF}>
-              <CIcon icon={cilPrint} className="me-1" />
-              Gerar PDF
+            <CButton color="secondary" onClick={this.closePdfModal}>
+              Fechar
             </CButton>
           </CModalFooter>
         </CModal>
