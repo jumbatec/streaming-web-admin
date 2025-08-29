@@ -20,9 +20,11 @@ import { cilLockLocked, cilUser } from '@coreui/icons'
 // Import API and constants
 import api from '../../../services/api'
 import { SUCURSAL_ID } from '../../Utils/constants'
+import { useAuth } from '../../../contexts/AuthContext'
 
 const Login = () => {
   const navigate = useNavigate()
+  const { login } = useAuth()
 
   // Form state
   const [formData, setFormData] = useState({
@@ -81,36 +83,6 @@ const Login = () => {
 
     setLoading(true)
 
-    // Check for dummy admin login
-    // if (formData.email === 'admin@gmail.com' && formData.password === 'admin') {
-    //   try {
-    //     // Create dummy admin user data
-    //     const dummyAdminData = {
-    //       id: 'admin-1',
-    //       name: 'Administrator',
-    //       email: 'admin@gmail.com',
-    //       phone: '+258 000 000 000',
-    //       isAdmin: true,
-    //       role: 'admin',
-    //     }
-
-    //     // Store dummy auth data
-    //     localStorage.setItem('authToken', 'dummy-admin-token-123')
-    //     localStorage.setItem('userEmail', 'admin@gmail.com')
-    //     localStorage.setItem('userData', JSON.stringify(dummyAdminData))
-
-    //     // Navigate to dashboard
-    //     navigate('/dashboard')
-    //     return
-    //   } catch (error) {
-    //     setError('Erro interno do sistema')
-    //     setShowAlert(true)
-    //   } finally {
-    //     setLoading(false)
-    //   }
-    //   return
-    // }
-
     // Regular API login for admin users
     try {
       const response = await api.post('/users/auth/login', {
@@ -129,35 +101,40 @@ const Login = () => {
           )
           const userData = userResponse.data
 
-          // Check if user has admin role/flag
-          if (!userData.isAdmin && userData.role !== 'admin' && !userData.admin) {
-            setError('Acesso negado. Apenas administradores podem acessar este painel.')
+          // Check if user has admin role/flag or is a valid user type
+          const validProfiles = ['admin', 'superadmin', 'sineasta', 'funcionario']
+          console.log(userData)
+          if (!validProfiles.includes(userData.profile) && !validProfiles.includes(userData.role)) {
+            setError('Acesso negado. Perfil de usuário não autorizado.')
             setShowAlert(true)
             setLoading(false)
             return
           }
 
-          // Store auth data for admin user
-          localStorage.setItem('authToken', token)
-          localStorage.setItem('userEmail', formData.email)
-
-          // Store admin user data
-          const adminDataToStore = {
+          // Store auth data using the auth context
+          const userDataToStore = {
             id: userData.id,
             name: userData.name,
             email: userData.email,
-            phone: userData.phone,
-            isAdmin: true,
-            role: userData.role || 'admin',
+            phone: userData.phone || userData.contact,
+            profile: userData.profile,
+            isAdmin: userData.profile === 'admin' || userData.profile === 'superadmin',
           }
 
-          localStorage.setItem('userData', JSON.stringify(adminDataToStore))
+          login(userDataToStore, token)
 
-          navigate('/dashboard')
+          // Redirect based on user profile
+          if (userData.profile === 'sineasta') {
+            navigate('/my-videos')
+          } else if (userData.profile === 'funcionario') {
+            navigate('/stream/videos')
+          } else {
+            navigate('/dashboard')
+          }
         } catch (userError) {
           console.error('Error fetching user details:', userError)
           if (userError.response?.status === 404) {
-            setError('Usuário não encontrado ou não tem permissões de administrador.')
+            setError('Usuário não encontrado ou não tem permissões válidas.')
           } else {
             setError('Erro ao verificar permissões de usuário.')
           }
@@ -175,7 +152,7 @@ const Login = () => {
       } else if (loginError.response?.status === 404) {
         setError('Usuário não encontrado.')
       } else if (loginError.response?.status === 403) {
-        setError('Acesso negado. Apenas administradores podem acessar este painel.')
+        setError('Acesso negado. Perfil de usuário não autorizado.')
       } else {
         setError('Erro ao fazer login. Tente novamente.')
       }
@@ -196,7 +173,7 @@ const Login = () => {
                   <CForm onSubmit={handleLogin}>
                     <h1>Painel Administrativo</h1>
                     <p className="text-body-secondary">
-                      Entre com as suas credenciais de administrador
+                      Entre com as suas credenciais
                     </p>
 
                     {/* Error Alert */}
@@ -221,7 +198,7 @@ const Login = () => {
                       <CFormInput
                         type="email"
                         name="email"
-                        placeholder="Email do administrador"
+                        placeholder="Email"
                         autoComplete="email"
                         value={formData.email}
                         onChange={handleInputChange}
@@ -243,34 +220,12 @@ const Login = () => {
                       />
                     </CInputGroup>
 
-                    {/* Demo/Admin Login Hint */}
-                    {/* <div className="text-center mb-3">
-                      <small className="text-muted">
-                        <CIcon icon={cilUser} className="me-1" />
-                        Demo Admin:
-                        <CButton
-                          variant="ghost"
-                          size="sm"
-                          className="p-0 ms-1 text-decoration-underline"
-                          style={{ fontSize: 'inherit', color: 'inherit' }}
-                          onClick={handleDemoFill}
-                        >
-                          admin@gmail.com / admin
-                        </CButton>
-                      </small>
-                    </div> */}
-
                     <CRow>
                       <CCol xs={6}>
                         <CButton type="submit" color="primary" className="px-4" disabled={loading}>
                           {loading ? 'Entrando...' : 'Entrar'}
                         </CButton>
                       </CCol>
-                      {/* <CCol xs={6} className="text-end">
-                        <CButton color="link" className="px-0">
-                          Esqueceu a senha?
-                        </CButton>
-                      </CCol> */}
                     </CRow>
                   </CForm>
                 </CCardBody>

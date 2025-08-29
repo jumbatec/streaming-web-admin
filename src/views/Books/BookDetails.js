@@ -1,23 +1,19 @@
-import React, { Component } from 'react';
-import { Card, CardBody, CardHeader, Col, Row} from 'reactstrap';
-
-
+import React, { Component } from 'react'
+import { Card, CardBody, CardHeader, Col, Row } from 'reactstrap'
 
 class BookDetails extends Component {
-
   render() {
-
-   return (
+    return (
       <div className="animated ">
         <Row>
           <Col lg={12}>
             <Card>
               <CardHeader>
-                <strong><i className="icon-info pr-1"></i>Detalhes do Livro: {this.props.match.params.id}</strong>
+                <strong>
+                  <i className="icon-info pr-1"></i>Detalhes do Livro: {this.props.match.params.id}
+                </strong>
               </CardHeader>
-              <CardBody>
-            
-              </CardBody>
+              <CardBody></CardBody>
             </Card>
           </Col>
         </Row>
@@ -26,4 +22,4 @@ class BookDetails extends Component {
   }
 }
 
-export default BookDetails;
+export default BookDetails

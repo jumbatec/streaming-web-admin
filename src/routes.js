@@ -2,10 +2,12 @@ import React from 'react'
 
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const Videos = React.lazy(() => import('./views/Video/ListVideos'))
+const MyVideos = React.lazy(() => import('./views/Video/MyVideos'))
 const Subscriptions = React.lazy(() => import('./views/Subscriptions/ListSubscriptions'))
 const SubscriptionDetails = React.lazy(() => import('./views/Subscriptions/SubscriptionDetails'))
 const UploadVideos = React.lazy(() => import('./views/Video/CreateVideo'))
 const Typography = React.lazy(() => import('./views/theme/typography/Typography'))
+const Users = React.lazy(() => import('./views/Users/ListUsers'))
 
 // Base
 const Accordion = React.lazy(() => import('./views/base/accordion/Accordion'))
@@ -56,12 +58,19 @@ const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
 const routes = [
   { path: '/', exact: true, name: 'Home' },
-  { path: '/dashboard', name: 'Dashboard', element: Dashboard },
-  { path: '/theme', name: 'Videos', element: Videos, exact: true },
-  { path: '/stream/videos', name: 'Videos', element: Videos },
-  { path: '/stream/subscriptions', name: 'Subscrições', element: Subscriptions },
-  { path: '/stream/subscriptions/:id', name: 'Dettalhes da Subscrição', element: SubscriptionDetails },
-  { path: '/upload/videos', name: 'Carregar Videos', element: UploadVideos },
+  { path: '/dashboard', name: 'Dashboard', element: Dashboard, requiredResource: 'dashboard' },
+  { path: '/theme', name: 'Videos', element: Videos, exact: true, requiredResource: 'videos' },
+  { path: '/stream/videos', name: 'Videos', element: Videos, requiredResource: 'videos' },
+  { path: '/my-videos', name: 'Meus Videos', element: MyVideos, requiredResource: 'my-videos' },
+  { path: '/stream/subscriptions', name: 'Subscrições', element: Subscriptions, requiredResource: 'subscriptions' },
+  {
+    path: '/stream/subscriptions/:id',
+    name: 'Dettalhes da Subscrição',
+    element: SubscriptionDetails,
+    requiredResource: 'subscriptions',
+  },
+  { path: '/upload/videos', name: 'Carregar Videos', element: UploadVideos, requiredResource: 'upload' },
+  { path: '/users', name: 'Utilizadores', element: Users, requiredResource: 'users' },
   { path: '/theme/typography', name: 'Typography', element: Typography },
   { path: '/base', name: 'Base', element: Cards, exact: true },
   { path: '/base/accordion', name: 'Accordion', element: Accordion },

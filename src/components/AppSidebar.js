@@ -18,8 +18,8 @@ import { AppSidebarNav } from './AppSidebarNav'
 import mimplay from 'src/assets/images/mimplay.png'
 import { sygnet } from 'src/assets/brand/sygnet'
 
-// sidebar nav config
-import navigation from '../_nav'
+// Import role-based navigation
+import RoleBasedNav from './RoleBasedNav'
 
 const AppSidebar = () => {
   const dispatch = useDispatch()
@@ -39,8 +39,8 @@ const AppSidebar = () => {
     >
       <CSidebarHeader className="border-bottom">
         <CSidebarBrand to="/">
-          <CImage customClassName="sidebar-brand-full" src={mimplay} height={50} />
-          <CIcon customClassName="sidebar-brand-narrow" icon={sygnet} height={32} />
+          <CImage className="sidebar-brand-full" src={mimplay} height={50} />
+          <CIcon className="sidebar-brand-narrow" icon={sygnet} height={32} />
         </CSidebarBrand>
         <CCloseButton
           className="d-lg-none"
@@ -48,7 +48,7 @@ const AppSidebar = () => {
           onClick={() => dispatch({ type: 'set', sidebarShow: false })}
         />
       </CSidebarHeader>
-      <AppSidebarNav items={navigation} />
+      <AppSidebarNav items={RoleBasedNav()} />
       <CSidebarFooter className="border-top d-none d-lg-flex">
         <CSidebarToggler
           onClick={() => dispatch({ type: 'set', sidebarUnfoldable: !unfoldable })}
