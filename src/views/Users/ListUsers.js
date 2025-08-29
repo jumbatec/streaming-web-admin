@@ -294,7 +294,7 @@ class ListUsers extends Component {
     try {
       if (editingUser) {
         // Update existing user
-        await api.put(`/users/${editingUser.id}`, {
+        await api.put(`/users/${editingUser.id}?createdAt=${editingUser.createdAt}`, {
           name: `${userForm.firstName} ${userForm.lastName}`,
           email: userForm.email,
           contact: userForm.contact,
@@ -348,7 +348,7 @@ class ListUsers extends Component {
     const { selectedUser } = this.state
 
     try {
-      await api.delete(`/users/${selectedUser.id}`)
+      await api.delete(`/users/${selectedUser.id}?createdAt=${selectedUser.createdAt}`)
       this.closeDeleteModal()
       // Show success message
       this.showSuccessMessage('Utilizador eliminado com sucesso!')
@@ -387,7 +387,7 @@ class ListUsers extends Component {
     }
 
     try {
-      await api.put(`/users/${selectedUser.id}/password`, {
+      await api.put(`/users/${selectedUser.id}/password?createdAt=${selectedUser.createdAt}`, {
         password: newPassword,
       })
       this.closeResetPasswordModal()
@@ -399,8 +399,9 @@ class ListUsers extends Component {
   async toggleUserStatus(user) {
     try {
       const newStatus = user.active === '1' ? '0' : '1'
-      await api.delete(`/users/${user.id}`, {
+      await api.delete(`/users/${user.id}?createdAt=${user.createdAt}`, {
         active: newStatus,
+
       })
       // Show success message
       this.showSuccessMessage(`Utilizador ${newStatus === '1' ? 'ativado' : 'inativado'} com sucesso!`)
