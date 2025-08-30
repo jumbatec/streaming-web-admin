@@ -23,6 +23,8 @@ export default defineConfig(() => {
     },
     optimizeDeps: {
       force: true,
+      include: ['react-dropzone', 'video-react', 'react-spinners'],
+      exclude: [],
       esbuildOptions: {
         loader: {
           '.js': 'jsx',

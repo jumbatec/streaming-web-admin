@@ -13,15 +13,14 @@ import {
   Button,
   ModalHeader,
 } from 'reactstrap'
-import categories from './categories'
 import { ClipLoader } from 'react-spinners'
-// import Loader from 'react-loader-advanced'
-import api, { baseURL, defaultSucursal } from './../../services/api'
+import api, { baseURL, defaultSucursal } from '../../services/api'
 
 import { CButton } from '@coreui/react'
 
-import Pagination from '.././Utils/Paination'
+import Pagination from '../Utils/Pagination'
 import { useAuth } from '../../contexts/AuthContext'
+
 const elementsPerPage = 4
 const spinner = (
   <div className="d-flex justify-content-center">
@@ -30,12 +29,12 @@ const spinner = (
 )
 
 // Wrapper component to use hooks in class component
-const ListVideosWithAuth = (props) => {
+const MyVideosWithAuth = (props) => {
   const { canPerformActions } = useAuth()
-  return <ListVideos {...props} canPerformActions={canPerformActions} />
+  return <MyVideos {...props} canPerformActions={canPerformActions} />
 }
 
-class ListVideos extends Component {
+class MyVideos extends Component {
   constructor(props) {
     super(props)
     this.state = {
@@ -48,12 +47,8 @@ class ListVideos extends Component {
       processing: false,
     }
   }
-  componentDidMount() {
-    // api.get('/api/video/count/alll/videos')
-    // .then(res => {
-    //   this.setState({total:20});
-    // })
 
+  componentDidMount() {
     this.loadvideos(this.state.curentpage)
   }
 
@@ -85,9 +80,27 @@ class ListVideos extends Component {
 
   loadvideos(page) {
     this.setState({ processing: true })
-    api.get('/movies/' + defaultSucursal).then((res) => {
+
+    // Get current user from localStorage
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+    const userId = userData.id
+
+    if (!userId) {
+      this.setState({ processing: false })
+      return
+    }
+
+    // Use the user-specific endpoint
+    api.get(`/movies/user/${userId}?sucursalId=${defaultSucursal}`).then((res) => {
       const videos = res.data
-      this.setState({ videos: videos, processing: false })
+      this.setState({
+        videos: videos,
+        total: videos.length,
+        processing: false
+      })
+    }).catch((error) => {
+      console.error('Error loading videos:', error)
+      this.setState({ processing: false })
     })
   }
 
@@ -103,7 +116,7 @@ class ListVideos extends Component {
           <Col xl={12}>
             <Card>
               <CardHeader>
-                <i className="fa fa-align-justify"></i> Lista de Videos{' '}
+                <i className="fa fa-align-justify"></i> Meus Videos{' '}
                 <a href="#">
                   <h5 style={{ float: 'right' }}>
                     [{(this.state.curentpage - 1) * elementsPerPage + 1} -{' '}
@@ -127,7 +140,7 @@ class ListVideos extends Component {
                         <th scope="col">Título</th>
                         <th scope="col">Categoria</th>
                         <th scope="col">Data de Publicação</th>
-                        <th scope="col">Visualições</th>
+                        <th scope="col">Visualizações</th>
                         <th scope="col">Comentários</th>
                         <th scope="col"></th>
                       </tr>
@@ -151,7 +164,7 @@ class ListVideos extends Component {
                           <td>{video.views}</td>
                           <td>{video.comments?.length}</td>
                           <td>
-                            {this.props.canPerformActions && this.props.canPerformActions('videos') ? (
+                            {this.props.canPerformActions && this.props.canPerformActions('my-videos') ? (
                               <CButton
                                 as="input"
                                 type="button"
@@ -160,7 +173,7 @@ class ListVideos extends Component {
                                 onClick={this.toggleFade.bind(this, video)}
                               />
                             ) : (
-                              <span className="text-muted"></span>
+                              <span className="text-muted">Apenas Visualização</span>
                             )}
                           </td>
                         </tr>
@@ -186,7 +199,7 @@ class ListVideos extends Component {
                     {this.state.video.title}
                   </ModalHeader>
                   <ModalBody>
-                    Esta Operação é ireversível. Tem a certeza que deseja remover este Vídeo?
+                    Esta Operação é irreversível. Tem a certeza que deseja remover este Vídeo?
                   </ModalBody>
                   <ModalFooter>
                     <Button color="danger" onClick={this.inativate.bind(this, this.state.video)}>
@@ -206,4 +219,4 @@ class ListVideos extends Component {
   }
 }
 
-export default ListVideosWithAuth
+export default MyVideosWithAuth

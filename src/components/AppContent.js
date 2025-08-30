@@ -4,6 +4,7 @@ import { CContainer, CSpinner } from '@coreui/react'
 
 // routes config
 import routes from '../routes'
+import ProtectedRoute from './ProtectedRoute'
 
 const AppContent = () => {
   return (
@@ -18,7 +19,15 @@ const AppContent = () => {
                   path={route.path}
                   exact={route.exact}
                   name={route.name}
-                  element={<route.element />}
+                  element={
+                    route.requiredResource ? (
+                      <ProtectedRoute requiredResource={route.requiredResource}>
+                        <route.element />
+                      </ProtectedRoute>
+                    ) : (
+                      <route.element />
+                    )
+                  }
                 />
               )
             )
