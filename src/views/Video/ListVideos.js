@@ -46,6 +46,13 @@ class ListVideos extends Component {
       curentpage: 1,
       ranges: [],
       processing: false,
+      // Cover update modal
+      coverModalOpen: false,
+      coverVideo: null,
+      coverFile: null,
+      coverPreview: null,
+      coverUploading: false,
+      coverError: null,
     }
   }
   componentDidMount() {
@@ -71,6 +78,70 @@ class ListVideos extends Component {
     this.setState({
       open: !this.state.open,
     })
+  }
+
+  openCoverModal(video) {
+    this.setState({
+      coverModalOpen: true,
+      coverVideo: video,
+      coverFile: null,
+      coverPreview: null,
+      coverError: null,
+    })
+  }
+
+  closeCoverModal() {
+    this.setState({
+      coverModalOpen: false,
+      coverVideo: null,
+      coverFile: null,
+      coverPreview: null,
+      coverError: null,
+    })
+  }
+
+  handleCoverFileChange(e) {
+    const file = e.target.files && e.target.files[0]
+    if (!file) return
+    this.setState({ coverFile: file, coverPreview: URL.createObjectURL(file) })
+  }
+
+  async saveCover() {
+    const { coverVideo, coverFile } = this.state
+    if (!coverFile) {
+      this.setState({ coverError: 'Escolhe uma imagem primeiro.' })
+      return
+    }
+
+    this.setState({ coverUploading: true, coverError: null })
+    try {
+      const data = new FormData()
+      data.append('files', coverFile)
+      const uploadRes = await api.post('/file-upload/upload-image', data, {
+        headers: { 'content-type': 'multipart/form-data' },
+      })
+      const newImageUrl = uploadRes.data[0].url
+
+      await api.put(`/movies/${coverVideo.id}/${coverVideo.createdAt}`, {
+        imageUrl: newImageUrl,
+      })
+
+      const videos = this.state.videos.map((v) =>
+        v.id === coverVideo.id ? { ...v, imageUrl: uploadRes.data[0].preview } : v,
+      )
+
+      this.setState({
+        videos,
+        coverUploading: false,
+        coverModalOpen: false,
+        coverVideo: null,
+        coverFile: null,
+        coverPreview: null,
+      })
+    } catch (error) {
+      console.error('Error updating cover:', error)
+      this.setState({ coverUploading: false, coverError: 'Erro ao atualizar a capa. Tenta novamente.' })
+    }
   }
 
   previousPageNumber() {
@@ -152,13 +223,22 @@ class ListVideos extends Component {
                           <td>{video.comments?.length}</td>
                           <td>
                             {this.props.canPerformActions && this.props.canPerformActions('videos') ? (
-                              <CButton
-                                as="input"
-                                type="button"
-                                color="danger"
-                                value="Remover"
-                                onClick={this.toggleFade.bind(this, video)}
-                              />
+                              <div className="d-flex gap-2">
+                                <CButton
+                                  as="input"
+                                  type="button"
+                                  color="info"
+                                  value="Editar Capa"
+                                  onClick={this.openCoverModal.bind(this, video)}
+                                />
+                                <CButton
+                                  as="input"
+                                  type="button"
+                                  color="danger"
+                                  value="Remover"
+                                  onClick={this.toggleFade.bind(this, video)}
+                                />
+                              </div>
                             ) : (
                               <span className="text-muted"></span>
                             )}
@@ -193,6 +273,44 @@ class ListVideos extends Component {
                       Confirmar
                     </Button>{' '}
                     <Button color="secondary" onClick={this.toggleOpenClose.bind(this)}>
+                      Cancelar
+                    </Button>
+                  </ModalFooter>
+                </Modal>
+
+                <Modal
+                  isOpen={this.state.coverModalOpen}
+                  toggle={this.closeCoverModal.bind(this)}
+                >
+                  <ModalHeader toggle={this.closeCoverModal.bind(this)}>
+                    Atualizar Capa {this.state.coverVideo ? `- ${this.state.coverVideo.title}` : ''}
+                  </ModalHeader>
+                  <ModalBody>
+                    <div className="mb-3 text-center">
+                      <img
+                        src={this.state.coverPreview || (this.state.coverVideo && this.state.coverVideo.imageUrl)}
+                        style={{ maxHeight: '220px', maxWidth: '100%', objectFit: 'contain' }}
+                      />
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="form-control"
+                      onChange={this.handleCoverFileChange.bind(this)}
+                    />
+                    {this.state.coverError && (
+                      <div className="text-danger mt-2">{this.state.coverError}</div>
+                    )}
+                  </ModalBody>
+                  <ModalFooter>
+                    <Button
+                      color="primary"
+                      onClick={this.saveCover.bind(this)}
+                      disabled={this.state.coverUploading || !this.state.coverFile}
+                    >
+                      {this.state.coverUploading ? 'A carregar...' : 'Guardar'}
+                    </Button>{' '}
+                    <Button color="secondary" onClick={this.closeCoverModal.bind(this)}>
                       Cancelar
                     </Button>
                   </ModalFooter>
