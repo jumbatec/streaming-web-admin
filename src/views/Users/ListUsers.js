@@ -294,11 +294,13 @@ class ListUsers extends Component {
     try {
       if (editingUser) {
         // Update existing user
-        await api.put(`/users/${editingUser.id}?createdAt=${editingUser.createdAt}`, {
-          name: `${userForm.firstName} ${userForm.lastName}`,
-          email: userForm.email,
-          contact: userForm.contact,
-          profile: userForm.profile,
+        await api.put(`/users/${editingUser.id}/${editingUser.createdAt}`, {
+          userData: {
+            name: `${userForm.firstName} ${userForm.lastName}`,
+            email: userForm.email,
+            contact: userForm.contact,
+            profile: userForm.profile,
+          },
         })
       } else {
         // Create new user
@@ -387,12 +389,19 @@ class ListUsers extends Component {
     }
 
     try {
-      await api.put(`/users/${selectedUser.id}/password?createdAt=${selectedUser.createdAt}`, {
-        password: newPassword,
-      })
+      const token = localStorage.getItem('authToken')
+      await api.put(
+        `/users/${selectedUser.id}/${selectedUser.createdAt}/reset-password`,
+        { newPassword },
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
       this.closeResetPasswordModal()
+      this.showSuccessMessage('Senha atualizada com sucesso!')
     } catch (error) {
       console.error('Error resetting password:', error)
+      this.setState({
+        formErrors: { password: error.response?.data?.error || 'Erro ao atualizar a senha.' },
+      })
     }
   }
 
