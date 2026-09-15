@@ -46,11 +46,14 @@ class ListVideos extends Component {
       curentpage: 1,
       ranges: [],
       processing: false,
-      // Cover update modal
+      // Cover update modal - both orientations can be updated independently,
+      // in the same modal, for the same movie.
       coverModalOpen: false,
       coverVideo: null,
-      coverFile: null,
-      coverPreview: null,
+      coverFileVertical: null,
+      coverPreviewVertical: null,
+      coverFileHorizontal: null,
+      coverPreviewHorizontal: null,
       coverUploading: false,
       coverError: null,
     }
@@ -84,8 +87,10 @@ class ListVideos extends Component {
     this.setState({
       coverModalOpen: true,
       coverVideo: video,
-      coverFile: null,
-      coverPreview: null,
+      coverFileVertical: null,
+      coverPreviewVertical: null,
+      coverFileHorizontal: null,
+      coverPreviewHorizontal: null,
       coverError: null,
     })
   }
@@ -94,49 +99,78 @@ class ListVideos extends Component {
     this.setState({
       coverModalOpen: false,
       coverVideo: null,
-      coverFile: null,
-      coverPreview: null,
+      coverFileVertical: null,
+      coverPreviewVertical: null,
+      coverFileHorizontal: null,
+      coverPreviewHorizontal: null,
       coverError: null,
     })
   }
 
-  handleCoverFileChange(e) {
+  handleCoverFileChange(orientation, e) {
     const file = e.target.files && e.target.files[0]
     if (!file) return
-    this.setState({ coverFile: file, coverPreview: URL.createObjectURL(file) })
+    if (orientation === 'vertical') {
+      this.setState({ coverFileVertical: file, coverPreviewVertical: URL.createObjectURL(file) })
+    } else {
+      this.setState({ coverFileHorizontal: file, coverPreviewHorizontal: URL.createObjectURL(file) })
+    }
+  }
+
+  async uploadCoverFile(file) {
+    const data = new FormData()
+    data.append('files', file)
+    const uploadRes = await api.post('/file-upload/upload-image', data, {
+      headers: { 'content-type': 'multipart/form-data' },
+    })
+    return uploadRes.data[0] // { url, preview }
   }
 
   async saveCover() {
-    const { coverVideo, coverFile } = this.state
-    if (!coverFile) {
-      this.setState({ coverError: 'Escolhe uma imagem primeiro.' })
+    const { coverVideo, coverFileVertical, coverFileHorizontal } = this.state
+
+    if (!coverFileVertical && !coverFileHorizontal) {
+      this.setState({ coverError: 'Escolhe pelo menos uma imagem primeiro.' })
       return
     }
 
     this.setState({ coverUploading: true, coverError: null })
     try {
-      const data = new FormData()
-      data.append('files', coverFile)
-      const uploadRes = await api.post('/file-upload/upload-image', data, {
-        headers: { 'content-type': 'multipart/form-data' },
-      })
-      const newImageUrl = uploadRes.data[0].url
+      const updateData = {}
+      let previewVertical
+      let previewHorizontal
 
-      await api.put(`/movies/${coverVideo.id}/${coverVideo.createdAt}`, {
-        imageUrl: newImageUrl,
-      })
+      if (coverFileVertical) {
+        const uploaded = await this.uploadCoverFile(coverFileVertical)
+        updateData.imageUrl = uploaded.url
+        previewVertical = uploaded.preview
+      }
+      if (coverFileHorizontal) {
+        const uploaded = await this.uploadCoverFile(coverFileHorizontal)
+        updateData.imageUrlHorizontal = uploaded.url
+        previewHorizontal = uploaded.preview
+      }
 
-      const videos = this.state.videos.map((v) =>
-        v.id === coverVideo.id ? { ...v, imageUrl: uploadRes.data[0].preview } : v,
-      )
+      await api.put(`/movies/${coverVideo.id}/${coverVideo.createdAt}`, updateData)
+
+      const videos = this.state.videos.map((v) => {
+        if (v.id !== coverVideo.id) return v
+        return {
+          ...v,
+          imageUrl: previewVertical || v.imageUrl,
+          imageUrlHorizontal: previewHorizontal || v.imageUrlHorizontal,
+        }
+      })
 
       this.setState({
         videos,
         coverUploading: false,
         coverModalOpen: false,
         coverVideo: null,
-        coverFile: null,
-        coverPreview: null,
+        coverFileVertical: null,
+        coverPreviewVertical: null,
+        coverFileHorizontal: null,
+        coverPreviewHorizontal: null,
       })
     } catch (error) {
       console.error('Error updating cover:', error)
@@ -283,21 +317,45 @@ class ListVideos extends Component {
                   toggle={this.closeCoverModal.bind(this)}
                 >
                   <ModalHeader toggle={this.closeCoverModal.bind(this)}>
-                    Atualizar Capa {this.state.coverVideo ? `- ${this.state.coverVideo.title}` : ''}
+                    Atualizar Capas {this.state.coverVideo ? `- ${this.state.coverVideo.title}` : ''}
                   </ModalHeader>
                   <ModalBody>
-                    <div className="mb-3 text-center">
-                      <img
-                        src={this.state.coverPreview || (this.state.coverVideo && this.state.coverVideo.imageUrl)}
-                        style={{ maxHeight: '220px', maxWidth: '100%', objectFit: 'contain' }}
-                      />
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="form-control"
-                      onChange={this.handleCoverFileChange.bind(this)}
-                    />
+                    <Row>
+                      <Col md={6}>
+                        <div className="small text-muted mb-1">
+                          Capa Vertical (Próximos Filmes, Filmes Recentes, etc.)
+                        </div>
+                        <div className="mb-2 text-center">
+                          <img
+                            src={this.state.coverPreviewVertical || (this.state.coverVideo && this.state.coverVideo.imageUrl)}
+                            style={{ maxHeight: '220px', maxWidth: '100%', objectFit: 'contain' }}
+                          />
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="form-control"
+                          onChange={this.handleCoverFileChange.bind(this, 'vertical')}
+                        />
+                      </Col>
+                      <Col md={6}>
+                        <div className="small text-muted mb-1">
+                          Capa Horizontal (carrossel do início)
+                        </div>
+                        <div className="mb-2 text-center">
+                          <img
+                            src={this.state.coverPreviewHorizontal || (this.state.coverVideo && this.state.coverVideo.imageUrlHorizontal)}
+                            style={{ maxHeight: '220px', maxWidth: '100%', objectFit: 'contain' }}
+                          />
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="form-control"
+                          onChange={this.handleCoverFileChange.bind(this, 'horizontal')}
+                        />
+                      </Col>
+                    </Row>
                     {this.state.coverError && (
                       <div className="text-danger mt-2">{this.state.coverError}</div>
                     )}
@@ -306,7 +364,7 @@ class ListVideos extends Component {
                     <Button
                       color="primary"
                       onClick={this.saveCover.bind(this)}
-                      disabled={this.state.coverUploading || !this.state.coverFile}
+                      disabled={this.state.coverUploading || (!this.state.coverFileVertical && !this.state.coverFileHorizontal)}
                     >
                       {this.state.coverUploading ? 'A carregar...' : 'Guardar'}
                     </Button>{' '}

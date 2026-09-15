@@ -25,6 +25,7 @@ import categories from './categories'
 
 import api, { baseURL, defaultSucursal } from './../../services/api'
 import { USER_KEY } from './../../services/auth'
+import { uploadVideoMultipart } from './../../services/multipartUpload'
 
 import { Player } from 'video-react'
 
@@ -40,9 +41,6 @@ const spinner = (
   </div>
 )
 
-const defaultsize = 680668160
-const defaulttime = 5
-
 const initState = {
   title: '',
   category: '',
@@ -51,6 +49,8 @@ const initState = {
   traillerUrl: '',
   screenshot: '',
   imagePreview: '',
+  screenshotHorizontal: '',
+  imagePreviewHorizontal: '',
   videoPreview: '',
   url: '',
   time: '',
@@ -189,6 +189,7 @@ class CreateVideo extends Component {
         details,
         url,
         screenshot,
+        screenshotHorizontal,
         recomended,
         duration,
         traillerUrl,
@@ -204,6 +205,7 @@ class CreateVideo extends Component {
         details,
         createdBy,
         imageUrl: screenshot,
+        imageUrlHorizontal: screenshotHorizontal,
         recomended,
         duration,
         traillerUrl,
@@ -265,59 +267,38 @@ class CreateVideo extends Component {
   }
 
   async uploadVideo(files) {
-    let increment = 0
-    this.setState({ uploading: true })
-    const updateProgress = (timetotal) => {
-      increment = increment + 100 / timetotal
-      if (this.state.percentage < 100) {
-        if (increment >= 1) {
-          this.setState({ percentage: this.state.percentage + 1 })
-          increment = 0
-        }
-        setTimeout(function () {
-          updateProgress(timetotal)
-        }, 1000)
-      }
-    }
+    if (files.length === 0) return
 
-    //Preparando para mandar o video
-    if (files.length !== 0) {
-      //let loggedUser = JSON.parse(localStorage.getItem(USER_KEY));
-      const data = new FormData()
-      data.append('files', files[0])
-      const config = {
-        headers: {
-          'content-type': 'multipart/form-data',
-        },
-      }
+    this.setState({ uploading: true, percentage: 0 })
+    const file = files[0]
 
-      //Monitorando o progress bar
-      let fileSize = files[0].size
-      let totalTime = (fileSize * defaulttime) / defaultsize
-      updateProgress(totalTime)
-      let response = await api.post('/file-upload/upload', data, config)
+    try {
+      const key = await uploadVideoMultipart(file, (percentage) => {
+        this.setState({ percentage })
+      })
 
-      increment = 100
       this.setState({
         percentage: 100,
         notfinish: false,
-        videoPreview: response.data[0].preview,
-        url: response.data[0].url,
+        // Local blob preview - instant, and reflects exactly the bytes just
+        // uploaded (no dependency on CDN cache catching up).
+        videoPreview: URL.createObjectURL(file),
+        url: key,
         confirm: true,
         uploaded: true,
         uploading: false,
-        duration: response.data.duration,
       })
+    } catch (error) {
+      console.error('Error uploading video:', error)
+      this.setState({ uploading: false, fileError: true })
     }
   }
 
   async handleDrop(files) {
-    //Preparando para mandar as imagens
+    //Preparando para mandar as imagens (capa vertical)
     if (files.length !== 0) {
       const data = new FormData()
       data.append('files', files[0])
-
-      console.log(files)
 
       const config = {
         headers: {
@@ -330,6 +311,27 @@ class CreateVideo extends Component {
       this.setState({
         screenshot: resp.data[0].url,
         imagePreview: resp.data[0].preview,
+      })
+    }
+  }
+
+  async handleDropHorizontal(files) {
+    //Preparando para mandar as imagens (capa horizontal - carrossel do início)
+    if (files.length !== 0) {
+      const data = new FormData()
+      data.append('files', files[0])
+
+      const config = {
+        headers: {
+          'content-type': 'multipart/form-data',
+        },
+      }
+
+      let resp = await api.post('/file-upload/upload-image', data, config)
+
+      this.setState({
+        screenshotHorizontal: resp.data[0].url,
+        imagePreviewHorizontal: resp.data[0].preview,
       })
     }
   }
@@ -405,11 +407,14 @@ class CreateVideo extends Component {
                       </span>
                     </div>
                   </LoadingOverlay>
+                  <div className="small text-muted mb-1">
+                    Capa Vertical (Próximos Filmes, Filmes Recentes, etc.)
+                  </div>
                   <Card>
                     {this.state.imagePreview ? (
                       <div id="banner">
                         <img
-                          alt="Capa de apresentação"
+                          alt="Capa vertical"
                           src={this.state.imagePreview}
                           style={{ height: '6em', width: '100%', backgroundSize: 'cover' }}
                         />
@@ -431,7 +436,37 @@ class CreateVideo extends Component {
                       {({ getRootProps, getInputProps }) => (
                         <div {...getRootProps()}>
                           <input {...getInputProps()} />
-                          <i className="icon-cloud-upload"></i> Carregar capa de apresentação
+                          <i className="icon-cloud-upload"></i> Carregar capa vertical
+                        </div>
+                      )}
+                    </ReactDropzone>
+                  </Button>
+
+                  <div className="small text-muted mb-1 mt-3">
+                    Capa Horizontal (carrossel do início)
+                  </div>
+                  <Card>
+                    {this.state.imagePreviewHorizontal ? (
+                      <div id="bannerHorizontal">
+                        <img
+                          alt="Capa horizontal"
+                          src={this.state.imagePreviewHorizontal}
+                          style={{ height: '6em', width: '100%', backgroundSize: 'cover' }}
+                        />
+                      </div>
+                    ) : null}{' '}
+                  </Card>
+                  <Button color="primary" size="sm" style={{ width: '100%' }} block outline>
+                    {' '}
+                    <ReactDropzone
+                      multiple={true}
+                      onDrop={this.handleDropHorizontal.bind(this)}
+                      accept="image/*"
+                    >
+                      {({ getRootProps, getInputProps }) => (
+                        <div {...getRootProps()}>
+                          <input {...getInputProps()} />
+                          <i className="icon-cloud-upload"></i> Carregar capa horizontal
                         </div>
                       )}
                     </ReactDropzone>
