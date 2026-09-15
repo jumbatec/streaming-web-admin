@@ -8,6 +8,7 @@ const SubscriptionDetails = React.lazy(() => import('./views/Subscriptions/Subsc
 const UploadVideos = React.lazy(() => import('./views/Video/CreateVideo'))
 const Typography = React.lazy(() => import('./views/theme/typography/Typography'))
 const Users = React.lazy(() => import('./views/Users/ListUsers'))
+const PricingSettings = React.lazy(() => import('./views/Settings/PricingSettings'))
 
 // Base
 const Accordion = React.lazy(() => import('./views/base/accordion/Accordion'))
@@ -71,6 +72,7 @@ const routes = [
   },
   { path: '/upload/videos', name: 'Carregar Videos', element: UploadVideos, requiredResource: 'upload' },
   { path: '/users', name: 'Utilizadores', element: Users, requiredResource: 'users' },
+  { path: '/settings/pricing', name: 'Preços', element: PricingSettings, requiredResource: 'pricing' },
   { path: '/theme/typography', name: 'Typography', element: Typography },
   { path: '/base', name: 'Base', element: Cards, exact: true },
   { path: '/base/accordion', name: 'Accordion', element: Accordion },

@@ -80,6 +80,8 @@ export const AuthProvider = ({ children }) => {
         return profile === 'admin' || profile === 'superadmin' || profile === 'sineasta'
       case 'my-videos':
         return profile === 'sineasta'
+      case 'pricing':
+        return profile === 'admin' || profile === 'superadmin'
       default:
         return false
     }

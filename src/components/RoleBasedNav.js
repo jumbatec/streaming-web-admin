@@ -91,6 +91,17 @@ const RoleBasedNav = () => {
       to: '/users',
       icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
     }] : []),
+
+    // Pricing settings - only for admin and superadmin
+    ...(canAccess('pricing') ? [{
+      component: CNavTitle,
+      name: 'Configurações',
+    }, {
+      component: CNavItem,
+      name: 'Preços dos Planos',
+      to: '/settings/pricing',
+      icon: <CIcon icon={cilCalculator} customClassName="nav-icon" />,
+    }] : []),
   ]
 
   return allNavItems
